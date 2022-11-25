@@ -1,0 +1,13 @@
+"filename", "language", "TOML", "Rust", "comment", "blank", "total"
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\Cargo.toml", "TOML", 17, 0, 1, 5, 23
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\bindings\Cargo.toml", "TOML", 11, 0, 1, 4, 16
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\bindings\build.rs", "Rust", 0, 7, 0, 1, 8
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\bindings\src\lib.rs", "Rust", 0, 1, 0, 1, 2
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\dafuncs.rs", "Rust", 0, 48, 54, 12, 114
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\interact.rs", "Rust", 0, 12, 0, 2, 14
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\main.rs", "Rust", 0, 190, 21, 14, 225
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\profile.rs", "Rust", 0, 66, 7, 4, 77
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\profiles.rs", "Rust", 0, 40, 22, 0, 62
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\wincredman.rs", "Rust", 0, 120, 40, 12, 172
+"c:\Users\tthreeoh\Documents\GitHub\tthreeoh\D2RAL\src\winlib.rs", "Rust", 0, 56, 85, 19, 160
+"Total", "-", 28, 540, 231, 74, 873
