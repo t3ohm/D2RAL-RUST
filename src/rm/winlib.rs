@@ -31,27 +31,7 @@ pub fn is_credential(target:String) -> bool {
         true
     }
 }
-pub fn handle_get(target:String,d2ral:&mut D2RAL) -> bool {
-    let mut handle_pid = String::with_capacity(25);
-    let mut handle_event = String::with_capacity(25);
-    let output = {
-        std::process::Command::new("handle64")
-            .args(&["-nobanner","-a","-p",&format!("{}.exe", target),"Instances"])
-            .output()
-            .expect("failed to execute process")
-    };
-    let stdout_text = String::from_utf8_lossy(&output.stdout).to_string();
-   
-    let re = Regex::new(r".*pid:[ ](?P<p>\d*)[ ]*type: Event[ ]*(?P<e>[A-Za-z0-9]*):.*").unwrap();
-    re.captures_iter(&stdout_text).for_each(|cap| {
-        d2ral.handle_pid = Some(cap[1].to_owned());
-        d2ral.handle_event = Some(cap[2].to_owned());
-    });
-    if d2ral.handle_pid.clone().unwrap() == "".to_string(){
-        return false;
-    }
-    return true
-}
+
 
 pub fn set_window_title(new_title:CString){
     unsafe {

@@ -1,6 +1,4 @@
 mod wincredman;
-mod winlib;
-mod dafuncs;
 mod profile;
 mod profiles;
 mod interact;
@@ -8,23 +6,32 @@ use colored::Colorize;
 use regex::Regex;
 use wildmatch::WildMatch;
 use wincredman::*;
-use dafuncs::*;
 use profile::*;
 use profiles::*;
 use interact::*;
-use winlib::set_window_title;
+use windows::{Win32::UI::WindowsAndMessaging::{SetWindowTextA, FindWindowA}, core::PCSTR};
 use core::time;
 use std::{thread,env, ffi::CString, thread::sleep,process::{Command, ExitStatus}};
 
+const EXE_NULL: &'static str = "faux_null.exe";
+const EXE_NAME: &'static str = "D2R.exe";
+const TITLE_NAME: &'static str = "Diablo II: Resurrected";
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let mut app = D2RAL::default();
-    if args.len() >= 2 {
-        D2RAL::main(&mut app,args.clone());
-    } else {
-        D2RAL::d2ral_cmds(&mut app,Funks::Remove)
-    }
+pub enum Funks {
+    Spawn(Profile),
+    Start,
+    Handle,
+    Select,
+    Add,
+    Remove,
+    Load,
+    List,
+    Volley,
+    Exit,
+    Debug,
+    Help,
+    SetTitle,
+    SetWindow(String)
 }
 pub struct D2RAL {
     debug:bool,
@@ -47,20 +54,14 @@ impl Default for D2RAL {
     }
 }
 
-pub enum Funks {
-    Spawn(Profile),
-    Start,
-    Handle,
-    // Function3(LaunchType),
-    Select,
-    Add,
-    Remove,
-    Load,
-    List,
-    Volley,
-    Exit,
-    Debug,
-    Help,
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let mut app = D2RAL::default();
+    if args.len() >= 2 {
+        D2RAL::main(&mut app,args.clone());
+    } else {
+        D2RAL::d2ral_cmds(&mut app,Funks::Remove)
+    }
 }
 
 impl D2RAL {
@@ -81,11 +82,13 @@ impl D2RAL {
             "help" | "h" => Self::d2ral_cmds(d2ral,Funks::Help),
             "add" | "a" => Self::d2ral_cmds(d2ral,Funks::Add),
             "del" | "delete" => Self::d2ral_cmds(d2ral,Funks::Remove),
+            "handle" | "killhandle" => Self::d2ral_cmds(d2ral,Funks::Handle),
             "quit" | "q" | "exit" => Self::d2ral_cmds(d2ral,Funks::Exit),
             "select" | "sel" => Self::d2ral_cmds(d2ral,Funks::Select),
             "spawn" | "start" | "run" => Self::d2ral_cmds(d2ral,Funks::Start),
             "load" => Self::d2ral_cmds(d2ral,Funks::Load),
             "volley" | "startall" => Self::d2ral_cmds(d2ral,Funks::Volley),
+            "title" => Self::d2ral_cmds(d2ral,Funks::SetTitle),
             "test" => {},
             _ => Self::d2ral_cmds(d2ral,Funks::Help)
         }
@@ -104,7 +107,7 @@ impl D2RAL {
                     profile_number+=1;
                 }
         
-                let profile_selection = user_input("Profile #/name> ");
+                let profile_selection = ask("Profile #/name> ");
                 profile_number = 0;
                 for profile in profiles {
                     
@@ -129,12 +132,10 @@ impl D2RAL {
             Funks::Start => {
                 Self::d2ral_cmds(d2ral,Funks::Select);
                 let profile = d2ral.current_profile.clone().unwrap();
-                print!("spawning profile {}",profile.name);
-                spawn_d2r_creds(profile.credentials);
+                Self::d2ral_cmds(d2ral,Funks::Spawn(profile.clone()));
                 sleep(time::Duration::from_secs(3));
                 Self::d2ral_cmds(d2ral,Funks::Handle);
-                let new_title =CString::new(profile.name).unwrap();
-                set_window_title(new_title);
+                Self::d2ral_cmds(d2ral,Funks::SetWindow(profile.name));
             },
             Funks::List => {
                 d2ral.stored_profiles.as_ref().unwrap().into_iter().for_each(|profile| {
@@ -155,14 +156,15 @@ impl D2RAL {
             Funks::Exit => {
                 std::process::exit(0);
             },
-            Funks::Spawn(value) => {
-                
-                println!("{:#?}",value.credentials.username);
+            Funks::Spawn(profile) => {
+                if profile.credentials.username != "".to_string() {
+                    println!("{}",profile.credentials.username);
+                }
                  thread::spawn(move || { let exe_path = "C:\\Program Files (x86)\\Diablo II Resurrected\\D2R.exe";
                     Command::new(exe_path)
                     .args(&["-w","-direct-txt",
-                        "-Username", &format!("{}",value.credentials.username),
-                        "-password", &format!("{}",value.credentials.secret),
+                        "-Username", &format!("{}",profile.credentials.username),
+                        "-password", &format!("{}",profile.credentials.secret),
                         "-address", "us.actual.battle.net"])
                     .spawn()
                     });},
@@ -190,10 +192,10 @@ impl D2RAL {
             },
             Funks::Remove => {
                 loop {
-                    let profile = user_input("Type the Profile name you want to delete.>");
+                    let profile = ask("Type the Profile name you want to delete.>");
                     println!("Are you sure you want to delete profile: {}",&profile.red());
                     println!("({})es/({})o/({})etry","Y".green(),"N".red(),"R".yellow());
-                    let engage = user_input("y/n/r_>").to_lowercase();
+                    let engage = ask("y/n/r_>").to_lowercase();
                     if engage == "y" {
                         println!("{}{}","Deleting profile: ".red(),profile);
                         Profile::delete(profile);
@@ -220,15 +222,15 @@ impl D2RAL {
                     if unlock {
                         break
                     }
-                    addname = user_input("Profile name>");
+                    addname = ask("Profile name>");
                     loop {
-                        addusername = user_input("Profile username>");
+                        addusername = ask("Profile username>");
                         if WildMatch::new("*@*").matches(&addusername){
                             break
                         }
                         println!("username emails use @...");
                     }
-                    addpassword = user_input("Profile password>");
+                    addpassword = ask("Profile password>");
                     // loop {
                     //     addpassword = prompt("Profile password>");
                     //     addpassword_control = prompt("Profile password>");
@@ -240,7 +242,7 @@ impl D2RAL {
                     loop {
                         println!("name:\t\t{}\nusername:\t{}\npassword:\t{}",&addname.red(),&addusername.green(),&addpassword.yellow());
                         println!("({})es/({})o/({})etry","Y".green(),"N".red(),"R".yellow());
-                        engage = user_input("y/n/r_>").to_lowercase();
+                        engage = ask("y/n/r_>").to_lowercase();
                         if engage == "y" {
                             //add profile and then break
                             println!("{}{}","adding ".green(),"profile");
@@ -287,6 +289,21 @@ impl D2RAL {
                 help_string = format!("{}\n-quit\t|> quit?",help_string);
                 println!("{}",help_string);
 
+            },
+            Funks::SetTitle =>{
+                let new_title = ask("New Title?>");
+                Self::d2ral_cmds(d2ral,Funks::SetWindow(new_title));
+                
+            },
+            Funks::SetWindow(new_title) => {
+                unsafe {
+                    let hwnd = {
+                        let orig_title = CString::new(TITLE_NAME).unwrap();
+                        FindWindowA(PCSTR::null(), PCSTR::from_raw(orig_title.as_bytes().as_ptr()))
+                    };
+                    let lpstring = PCSTR::from_raw(format!("D2R-{}",new_title).as_bytes().as_ptr());
+                    SetWindowTextA(hwnd,lpstring);
+                };
             },
         }
 

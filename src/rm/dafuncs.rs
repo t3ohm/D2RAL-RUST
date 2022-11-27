@@ -1,6 +1,5 @@
 use crate::D2RAL;
 use crate::wincredman::{read_credential, Credential};
-use crate::winlib::{self, handle_get};
 use std::process::{Command, ExitStatus};
 use std::thread::JoinHandle;
 use std::{thread, fmt};
@@ -38,17 +37,7 @@ pub fn spawn_handle_exe(ui:&mut D2RAL)-> JoinHandle<Result<ExitStatus, std::io::
     })
 }
 
-pub fn handle_close_d2r(d2ral:&mut D2RAL){
-        while handle_get("D2R".to_string(),d2ral){
-            spawn_handle_exe(d2ral);
-            if handle_get("D2R".to_string(),d2ral){
-                d2ral.handle_event = Some("".to_string());
-                d2ral.handle_pid = Some("".to_string());
-                println!("multisession handle closed.");
-                break
-            }
-        } 
-}
+
 // pub fn is_d2r_credential(target:String) -> bool {
 //     is_credential(format!("D2R-{}",target))
 // }

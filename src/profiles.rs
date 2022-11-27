@@ -1,5 +1,5 @@
-use crate::{winlib::is_credential, profile::Profile};
-use colored::Colorize;
+use crate::profile::Profile;
+use std::str;
 use serde::__private::from_utf8_lossy;
 use wildmatch::WildMatch;
 pub struct Profiles {
@@ -28,7 +28,7 @@ impl Profiles {
             for linesplit in line.split("\n"){
                 for linesplit2 in linesplit.split(": "){
                     if WildMatch::new("D2R-*").matches(linesplit2){
-                        if is_credential(linesplit2.to_string()){
+                        if Self::is_credential(linesplit2.to_string()){
                             // println!("{}{}",&format!("Profile: ").red(),&linesplit2.yellow());
                             //println!("{:#?}",profiles_vec); 
                             profiles_vec.push(Profile::load(linesplit2.to_string()));
@@ -39,24 +39,22 @@ impl Profiles {
         });
         profiles_vec
     }
-    // pub fn display_cred_entries()->String {
-    //     let creds_output = Self::list_pretty();
-    //     let mut profile_display:String = "".to_string();
-    //     if format!("{:?}",creds_output) == "failed to execute process"{
-    //         return profile_display
-    //     }
-    //     creds_output.split("\r\n").for_each(|line: &str| {
-    //         for linesplit in line.split("\n"){
-    //             for linesplit2 in linesplit.split(": "){
-    //                 if WildMatch::new("D2R-*").matches(linesplit2){
-    //                     if is_credential(linesplit2.to_string()){
-    //                         let profile:Profile = Profile::load(linesplit2.to_string());
-    //                         profile_display = format!("{}\n{}",profile_display,profile.name);
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     });
-    //     format!("Stored Profiles:{}",profile_display)
-    // }
+    pub fn is_credential(target:String) -> bool {
+        let output = {
+           std::process::Command::new("cmdkey")
+                   .arg(format!("/list:{}",target))
+                   .output()
+                   .expect("failed to execute process")
+        };
+        let s = match str::from_utf8(&output.stdout) {
+            Ok(v) => v,
+            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        };
+        let sub_string = format!("{:#?}",s);
+        if sub_string.contains("NONE") || sub_string.contains("incorrect"){
+            false
+        } else {
+            true
+        }
+    }
 }
