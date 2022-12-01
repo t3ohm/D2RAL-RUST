@@ -10,6 +10,7 @@ strip = true
 lto = "thin"
 
 [dependencies]
+hudhook = { path = "vendor/hudhook" }
 tui = "0.19"
 crossterm = "0.25"
 colored = "*"
