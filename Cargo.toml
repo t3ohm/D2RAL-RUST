@@ -10,6 +10,8 @@ strip = true
 lto = "thin"
 
 [dependencies]
+tui = "0.19"
+crossterm = "0.25"
 colored = "*"
 regex = "1"
 wildmatch = "2.1.1"

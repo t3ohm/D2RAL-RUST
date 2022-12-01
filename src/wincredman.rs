@@ -38,12 +38,12 @@ pub struct Credential {
     // pub attribute_count:u32,
     // pub Attributes: std::ptr::null_mut(),
 }
-
-
-
-
-// If the following Operations fail for any reason, ie; no credential,
-// the result will resolve to an error.(CRASH)
+impl PartialEq for Credential {
+    fn eq(&self, other: &Self) -> bool {
+        self.target == other.target
+    }
+}
+impl Eq for Credential {}
 impl Default for Credential {
     fn default() -> Self {
         Self {
@@ -57,6 +57,8 @@ impl Default for Credential {
         }
     }
 }
+// If the following Operations fail for any reason, ie; no credential,
+// the result will resolve to an error.(CRASH)
 pub fn read_cred_session(target: &str) -> Credential {
     read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
 }
@@ -66,8 +68,6 @@ pub fn read_cred_generic(target: &str) -> Credential {
 pub fn read_cred_enterprise(target: &str) -> Credential {
     read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
 }
-
-
 pub fn read_credential(target: &str,credtype:u32,flags:u32) -> Credential {
     let target_cstr = U16CString::from_str(target).unwrap();
     let target_ptr = target_cstr.as_ptr();
@@ -132,16 +132,15 @@ pub fn write_credential(cred: Credential) {
     let filetime: *mut FILETIME = Box::into_raw(filetime);
     unsafe { GetSystemTimeAsFileTime(filetime) };
     let secret_len = cred.secret.len();
-    let target_cstr = U16CString::from_str(cred.target).unwrap();
-    let secret_cstr = U16CString::from_str(cred.secret).unwrap();
-    let user_cstr = U16CString::from_str(cred.username).unwrap();
-    let targetalias_cstr = U16CString::from_str(cred.comment).unwrap();
-    let comment_cstr = U16CString::from_str(cred.targetalias).unwrap();
+    let target_cstr = U16CString::from_os_str(cred.target).unwrap();
+    let secret_cstr = U16CString::from_os_str(cred.secret).unwrap();
+    let user_cstr = U16CString::from_os_str(cred.username).unwrap();
+    let targetalias_cstr = U16CString::from_os_str(cred.targetalias).unwrap();
+    let comment_cstr = U16CString::from_os_str(cred.comment).unwrap();
     //let persist :u32 = cred.persist;
     //let persist :u32 = cred.persist;
     //let attribute_count:u32 = cred.attribute_count;
     let attribute_count:u32 = 0;
-
     let target_ptr = target_cstr.as_ptr();
     let secret_ptr = secret_cstr.as_ptr();
     let user_ptr = user_cstr.as_ptr();
