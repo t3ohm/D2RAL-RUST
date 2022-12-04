@@ -56,7 +56,6 @@ impl fmt::Display for Mode {
     }
 }
 /// Diablo II: Resurrected: Awesome Launcher
-/// Diablo II: Resurrected: Awesome Launcher
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -126,9 +125,9 @@ pub enum Commands {
     CustomTitle { old: String, new: String},
     /// D2RAL.exe -i "{Dll Path}" "{window_title}"=> Inject a compatible Dll into window
     Inject {dll_path: String, title: String, },
-    Test,
     /// more help
     HelpMore,
+    Test, 
 }
 
 // const MODE_MOD: &str = "mod";
