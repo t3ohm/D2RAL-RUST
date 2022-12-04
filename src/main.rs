@@ -1,19 +1,21 @@
 mod wincredman;
 mod profile;
 mod interact;
-use colored::Colorize;
-use hudhook::inject::inject_by_pid;
+mod inject;
+// use colored::Colorize;
+use crossterm::style::Stylize;
+// use hudhook::inject::inject_by_pid;
 use regex::Regex;
 use wincredman::*;
 use profile::*;
 use interact::*;
+use inject::*;
 use windows::{Win32::{UI::WindowsAndMessaging::{SetWindowTextA, FindWindowA, GetWindowThreadProcessId}, Foundation::HWND}, core::PCSTR};
 use core::time;
 use std::{thread,ffi::CString, thread::sleep,process::{Command, ExitStatus}, time::Duration};
 use clap::{Parser, Subcommand};
 use std::fmt;
 use std::path::Path;
-
 #[derive(Debug,Clone)]
 pub enum Region {
     US,
@@ -54,56 +56,47 @@ impl fmt::Display for Mode {
     }
 }
 /// Diablo II: Resurrected: Awesome Launcher
-
+/// Diablo II: Resurrected: Awesome Launcher
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Profile name     [required for commands Add,Delete,Set-Title]
-    #[arg(short, long, default_value_t = EMPTY_STRING.to_string())]
+    #[arg(short, long)]
     name: String,
     /// Profile username [required for command Add]
-    #[arg(short, long, default_value_t = EMPTY_STRING.to_string())]
+    #[arg(short, long)]
     username: String,
     /// Profile password [required for command Add]
-    #[arg(short, long, default_value_t = EMPTY_STRING.to_string())]
+    #[arg(short, long)]
     password: String,
     /// Region
-    #[arg(short, long, default_value_t = US_REGION.to_string())]
+    #[arg(short, long)]
     region: String,
     /// Profile Mode
     #[arg(short, long, default_value_t = MODE_NONE.to_string())]
     mode: String,
-    // /// launch option
-    // #[arg(long, default_value_t = EMPTY_STRING.to_string())]
-    // launch_option1: String,
-    // /// launch option
-    // #[arg(long, default_value_t = EMPTY_STRING.to_string())]
-    // launch_option2: String,
-    // /// launch option
-    // #[arg(long, default_value_t = EMPTY_STRING.to_string())]
-    // launch_option3: String,
-    // /// launch option
-    // #[arg(long, default_value_t = EMPTY_STRING.to_string())]
-    // launch_option4: String,
-    /// mod name
-    #[arg(long, default_value_t = EMPTY_STRING.to_string())]
-    mod_name: String,
+    // /// mod name
+    // #[arg(long)]
+    // mod_name: String,
     /// sound
     #[arg(short, long, default_value_t = 0)]
     sound: u8,
-    /// window
+    ///[fullscreen:1 , windowed:2]
     #[arg(short, long, default_value_t = 0)]
     window: u8,
-    /// Title
-    #[arg(short, long, default_value_t = EMPTY_STRING.to_string())]
-    title: String,
+    // /// Title
+    // #[arg(short, long)]
+    // title: String,
     /// Confirm
     #[arg(short, long, default_value_t = CONFIRM_NO.to_string())]
     confirm: String,
     /// inject
     #[arg(short, long, default_value_t = EMPTY_STRING.to_string())]
     inject: String,
+    /// help2
+    #[arg(long)]
+    help2: bool,
     
     #[command(subcommand)]
     command: Commands,
@@ -121,54 +114,71 @@ pub enum Commands {
     Add,
     /// D2RAL.exe -n {profile_name} delete => Delete a profile
     Delete,
+    /// D2RAL.exe -n {profile_name} update => update a profile with new options
+    Update,
+    /// D2RAL.exe -n {profile_name} copy {new profile name}=> copy a profile with new options
+    Copy { new: String},
     /// D2RAL.exe handle => Kill Mulisession mutex handle
     Handle,
-    /// D2RAL.exe -n {profile_name} title => Set a default title window to a new title
-    SetTitle,
+    /// D2RAL.exe set-title {new title} => Set a default title window to a new title
+    SetTitle { new: String},
     /// D2RAL.exe custom-title {old} {new}
     CustomTitle { old: String, new: String},
     /// D2RAL.exe -i "{Dll Path}" "{window_title}"=> Inject a compatible Dll into window
     Inject {dll_path: String, title: String, },
-    // Test,
+    Test,
+    /// more help
+    HelpMore,
 }
 
+// const MODE_MOD: &str = "mod";
+// const OFFLINE: &'static str = "offline";
+// const EXE_NULL: &'static str = "faux_null.exe";
+// const EXE_NAME: &'static str = "D2R.exe";
 const CONFIRM_NO: &str = "no";
-const US_REGION: &str = "us";
+// const US_REGION: &str = "us";
 const MODE_NONE: &str = "none";
 const MODE_NORMAL: &str = "normal";
 const MODE_DIRECT: &str = "direct";
 const MODE_DIRECTTXT: &str = "txtdirect";
-// const MODE_MOD: &str = "mod";
-// const OFFLINE: &'static str = "offline";
 const EMPTY_STRING: &'static str = "";
-// const EXE_NULL: &'static str = "faux_null.exe";
-// const EXE_NAME: &'static str = "D2R.exe";
 const TITLE_NAME: &'static str = "Diablo II: Resurrected";
 const TAG: &'static str = "D2R-";
 
 fn main() {
     let cli = cli_prep();
     match &cli.command {
-        Commands::Add  => profile_add_helper(cli),
         Commands::List => profile_list(),
+        Commands::Add  => profile_add_helper(cli),
+        Commands::Update  => profile_edit_helper(cli),
         Commands::Delete => profile_del_helper(cli),
         Commands::Handle => kill_handle(),
         Commands::Start => start(cli),
         Commands::Volley => profile_volley(cli),
-        Commands::SetTitle => set_title_helper(cli),
+        Commands::SetTitle { new } => set_title_helper(new),
         Commands::CustomTitle { old, new } => custom_title_helper(old,new),  
         Commands::Inject { title, dll_path } => inject_helper(title,dll_path),
-        // Commands::Test => {},
+        Commands::Test => {
+            name_check(Some(cli.clone()));
+            let profile = profile_select(Some(cli.name.to_string())).unwrap_or_default();
+            println!("{:#?}",profile);
+        },
+        Commands::Copy { new } => {
+            profile_copy_helper(cli.clone(),new);
+        },
+        Commands::HelpMore => todo!(),
     }
     std::process::exit(0);
 }
 
 pub fn inject_helper(title:&str, dll_path:&str){
     if !verify_inject(title, dll_path) {
+        println!("womp");
         return;
     }
     println!("injecting into Window({}) \nwith({})",title,dll_path);
-    inject_by_pid(pid_from_title(title), dll_path.into()).expect("Unable to inject!")
+    inject(title,dll_path.into()).expect("Unable to inject!");
+    // inject_by_pid(pid_from_title(title), dll_path.into()).expect("Unable to inject!")
 }
 pub fn verify_inject(title:&str, dll_path:&str)->bool{
     let pid = pid_from_title(title);
@@ -182,6 +192,7 @@ pub fn check_pid(pid:u32)->bool{
     if pid != 0 {
         true
     } else {
+        println!("pid 0");
         false
     }
 }
@@ -189,6 +200,7 @@ pub fn check_path(path:&str)->bool{
     if Path::new(path).exists(){
         true
     } else {
+        println!("path({})",path);
         false
     }
 }
@@ -231,12 +243,12 @@ pub fn get_hwnd(title_str:&str) -> windows::Win32::Foundation::HWND {
         FindWindowA(PCSTR::null(), PCSTR::from_raw(title.as_bytes().as_ptr()))
     }
 }
-pub fn set_title_helper(cli:Cli){
-    if cli.title.len() == 0 {
+pub fn set_title_helper(new:&str){
+    if new.len() == 0 {
         println!("{}","please provide a title with -t <title>");
         exit()
     }
-    setwindow_orig(cli.title);
+    setwindow_orig(new.to_string());
 }
 pub fn custom_title_helper(old:&str,new:&str){
     println!("changing window title of {} to {}",old,new);
@@ -291,7 +303,7 @@ pub fn targetalias_to_args(targetalias:String)->(String,String,String,String,Str
                                 "mode3" => mode3 = value.to_string(),
                                 "sound" => sound = "-ns".to_string(),
                                 "window" => window = "-w".to_string(),
-                                y @ _ => c_cmd = Default::default(),
+                                _y @ _ => c_cmd = Default::default(),
                                 
                             }
                         }
@@ -310,8 +322,9 @@ pub fn args_to_targetalias(mode:String,sound:String,window:String)->String{
     let window = if window == "1" {format!("")} else if window == "2" {format!("window:-w,")} else {format!("")};
     format!("{}{}{}{}{}",mode2,mod_mode,ext_mode,sound,window)
 }
+#[allow(unused_assignments)]
 pub fn merge_args_to_profile(cli:Cli,profile:Option<Profile>)->Option<Profile>{
-    let (mut mode,mut mod_mode,mut ext_mode,mut sound,mut window) = 
+    let (mut mode,mod_mode,_ext_mode,mut sound,mut window) = 
         targetalias_to_args(profile.clone().unwrap().credentials.targetalias);
     if cli.mode.to_lowercase() != "none" {
         mode = cli.mode;
@@ -341,6 +354,54 @@ pub fn merge_args_to_profile(cli:Cli,profile:Option<Profile>)->Option<Profile>{
     let profile2 = Some(profile2);
     profile2
 }
+
+pub fn profile_copy_edit(cli:Cli,new_name:&str)->Cli{
+    let profile = profile_select(Some(cli.clone().name.to_string())).unwrap_or_default();
+    let (_mode,mode2,_mode3,sound,window) = targetalias_to_args(profile.credentials.targetalias.clone());
+    let mut cli = cli;
+    if profile != Profile::default(){
+        cli.name = new_name.to_string();
+        cli.username = profile.credentials.username.clone();
+        cli.password = profile.credentials.secret.clone();
+        cli.region = {
+            if cli.region.clone() == EMPTY_STRING.to_string(){
+                profile.credentials.comment.clone()
+            } else {
+                cli.region.clone()
+            }
+        };
+        if cli.mode.clone() == MODE_NONE.to_string(){
+            cli.mode = mode2;
+        }
+        if cli.sound == 0 {
+            cli.sound = match sound.as_str() {
+                "-ns" => 2,
+                _=> 1,
+            }
+        }
+        if cli.window == 0 {
+            cli.window = match window.as_str() {
+                "-w" => 2,
+                _=> 1,
+            }
+        }
+    }
+    cli
+}
+pub fn profile_edit_helper(cli:Cli){
+    name_check(Some(cli.clone()));
+    let cli = profile_copy_edit(cli.clone(),&cli.name.clone());
+    println!("Editing profile {}",cli.name);
+    profile_add_helper(cli)
+}
+pub fn profile_copy_helper(cli:Cli,new_name:&str){
+    name_check(Some(cli.clone()));
+    let copyfrom = cli.name.clone();
+    let cli = profile_copy_edit(cli.clone(),&new_name);
+    println!("Copying profile {} to {}",copyfrom,cli.name);
+    profile_add_helper(cli);
+}
+
 pub fn spawn(cli:Cli,mut profile:Option<Profile>){
     if profile == None {profile = Some(Profile::default())}
     let profile_spawn_cred = profile.clone().unwrap().credentials;
@@ -403,7 +464,27 @@ pub fn start(cli:Cli){
 pub fn profile_list(){
     Some(Profiles::load_to_vec()).as_ref().unwrap().into_iter().for_each(|profile| {
         if profile.name != Profile::default().name {
-            println!("Profile({}) launch_commands({}) region({})",profile.name.yellow(),profile.credentials.targetalias.green(),profile.credentials.comment.red());
+            let  (mut mode2, mut mod_mode, mut ext_mode, mut sound, mut window)= targetalias_to_args(profile.credentials.targetalias.clone());
+
+            if !mode2.is_empty(){
+                mode2 = format!("{} ",mode2)
+            }
+            if !mod_mode.is_empty(){
+                mod_mode = format!("{} ",mod_mode)
+            }
+            if !ext_mode.is_empty(){
+                ext_mode = format!("{} ",ext_mode)
+            }
+            if !sound.is_empty(){
+                sound = format!("{} ",sound)
+            }
+            if !window.is_empty(){
+                window = format!("{}",window)
+            }
+            let launch_commands = format!("{}{}{}{}{}",mode2.green(),mod_mode.green(),ext_mode.green(),sound.red(),window.yellow());
+            let profilename = profile.name.clone().yellow();
+            let region = profile.credentials.comment.clone().red();
+            println!("Profile({}) region({}) launch_commands({}) ",profilename.to_string(),region.to_string(),launch_commands);
         }
     });
 }
@@ -429,7 +510,7 @@ pub fn profile_del_helper(cli:Cli){
 pub fn profile_add_helper(cli:Cli){
     //unwrap wont panic due to exit()
     let cli = add_check(Some(cli.clone())).unwrap();
-    println!("adding profile > name:{} username:{} region:{} ", cli.name.red(), cli.username.green(),cli.region.cyan());
+    println!("adding profile > name:{} username:{} region:{} ", cli.name.clone().red(), cli.username.clone().green(),cli.region.clone().cyan());
     let cred:Credential = Credential { 
         target: tag(&cli.name.clone()), 
         username: cli.username.to_string(), 
@@ -458,7 +539,7 @@ pub fn profile_select(p_profile:Option<String>) -> Option<Profile> {
         println!("Select profile by number or name");
         // let profiles = stored_profiles.as_ref().unwrap();
         for profile in &stored_profiles {
-            println!("{} -> {}",profile_number.to_string().green(),profile.name.yellow());
+            println!("{} -> {}",profile_number.to_string().green(),profile.name.clone().yellow());
             profile_number+=1;
         }
         profile_selection = ask("Profile #/name> ");
@@ -484,7 +565,7 @@ pub fn exit(){
 }
 
 pub fn add_check(cli:Option<Cli>)->Option<Cli>{
-    name_check(username_check(password_check(cli)))
+    name_check(username_check(password_check(region_check(cli))))
 }
 pub fn name_check(cli:Option<Cli>)->Option<Cli>{
     let cli = cli.unwrap();
@@ -506,6 +587,14 @@ pub fn password_check(cli:Option<Cli>)->Option<Cli>{
     let cli = cli.unwrap();
     if cli.password == "".to_string() {
         println!("--password is empty! ({})",cli.password);
+        exit()
+    }
+    Some(cli)
+}
+pub fn region_check(cli:Option<Cli>)->Option<Cli>{
+    let cli = cli.unwrap();
+    if cli.region == "".to_string() {
+        println!("--region is empty!");
         exit()
     }
     Some(cli)
@@ -543,6 +632,9 @@ pub fn get_mode(mode:&str) -> String {
         MODE_DIRECTTXT => {
             Mode::DirectTxt.to_string()
         },
+        MODE_NONE => {
+            "".to_string()
+        },
         // MODE_MOD => {
         //     Mode::Mod.to_string()
         // },
@@ -563,6 +655,9 @@ pub fn get_mod_mode(mode:&str) -> String {
         MODE_DIRECTTXT => {
             "-txt".to_string()
         },
+        MODE_NONE => {
+            "".to_string()
+        },
         x @ _=>{
             format!("{},",x)
         }
@@ -577,6 +672,9 @@ pub fn get_ext_mode(mode:&str) -> String {
             "".to_string()
         },
         MODE_DIRECTTXT => {
+            "".to_string()
+        },
+        MODE_NONE => {
             "".to_string()
         },
         _=>{

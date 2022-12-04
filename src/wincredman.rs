@@ -1,22 +1,24 @@
-use std::{ffi::c_void, ptr::null};
+use std::{ffi::c_void};
 use widestring::{U16CString, U16String};
 use wincredentials_bindings::Windows::Win32::{System::SystemInformation::GetSystemTimeAsFileTime,
     Foundation::*, Security::Credentials::*
 };
+
+#[allow(unused_must_use)]
 const NO_FLAGS: u32 = 0;
 
 
 const GENERIC_CREDENTIAL: u32 = 1;
-const CRED_TYPE_DOMAIN_PASSWORD: u32 = 2;
-const CRED_TYPE_DOMAIN_CERTIFICATE: u32 = 3;
-const CRED_TYPE_DOMAIN_VISIBLE_PASSWORD: u32 = 4;
-const CRED_TYPE_GENERIC_CERTIFICATE: u32 = 5;
-const CRED_TYPE_DOMAIN_EXTENDED: u32 = 6;
-const CRED_TYPE_MAXIMUM: u32 = 7;
+// const CRED_TYPE_DOMAIN_PASSWORD: u32 = 2;
+// const CRED_TYPE_DOMAIN_CERTIFICATE: u32 = 3;
+// const CRED_TYPE_DOMAIN_VISIBLE_PASSWORD: u32 = 4;
+// const CRED_TYPE_GENERIC_CERTIFICATE: u32 = 5;
+// const CRED_TYPE_DOMAIN_EXTENDED: u32 = 6;
+// const CRED_TYPE_MAXIMUM: u32 = 7;
 
-const CRED_PERSIST_SESSIONL: u32 = 1;
+// const CRED_PERSIST_SESSIONL: u32 = 1;
 const CRED_PERSIST_LOCAL_MACHINE: u32 = 2;
-const CRED_PERSIST_ENTERPRISE: u32 = 3;
+// const CRED_PERSIST_ENTERPRISE: u32 = 3;
 
 #[derive(Debug, Clone)]
 pub struct Credential {
@@ -59,15 +61,15 @@ impl Default for Credential {
 }
 // If the following Operations fail for any reason, ie; no credential,
 // the result will resolve to an error.(CRASH)
-pub fn read_cred_session(target: &str) -> Credential {
-    read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
-}
+// pub fn read_cred_session(target: &str) -> Credential {
+//     read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
+// }
 pub fn read_cred_generic(target: &str) -> Credential {
     read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
 }
-pub fn read_cred_enterprise(target: &str) -> Credential {
-    read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
-}
+// pub fn read_cred_enterprise(target: &str) -> Credential {
+//     read_credential(&target,GENERIC_CREDENTIAL,NO_FLAGS)
+// }
 pub fn read_credential(target: &str,credtype:u32,flags:u32) -> Credential {
     let target_cstr = U16CString::from_str(target).unwrap();
     let target_ptr = target_cstr.as_ptr();

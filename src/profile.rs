@@ -1,4 +1,4 @@
-use crate::wincredman::{Credential,read_credential,read_cred_generic, delete_credential};
+use crate::wincredman::{Credential,read_cred_generic,delete_credential};
 use std::fmt;
 use std::str;
 use serde::__private::from_utf8_lossy;

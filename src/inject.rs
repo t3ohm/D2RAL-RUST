@@ -6,9 +6,8 @@ use std::path::PathBuf;
 use std::ptr::{null, null_mut};
 
 use log::*;
-use widestring::U16CString;
-use windows::core::{Error, Result, HRESULT, PCSTR, PCWSTR};
-use windows::Win32::Foundation::{CloseHandle, GetLastError, BOOL, MAX_PATH};
+use windows::core::{ Result, PCSTR};
+use windows::Win32::Foundation::{CloseHandle, BOOL, MAX_PATH};
 use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 use windows::Win32::System::Memory::{
@@ -18,27 +17,27 @@ use windows::Win32::System::Threading::{
     CreateRemoteThread, GetExitCodeThread, OpenProcess, WaitForSingleObject, PROCESS_ALL_ACCESS,
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
-use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowThreadProcessId};
+
+use crate::{get_pid, get_hwnd};
 
 /// Inject the DLL stored at `dll_path` in the process that owns the window with
 /// title `title`.
 pub fn inject(title: &str, dll_path: PathBuf) -> Result<()> {
-    let title = U16CString::from_str(title).unwrap();
-    let hwnd = unsafe { FindWindowW(PCWSTR(null()), PCWSTR(title.as_ptr())) };
+    // let title = U16CString::from_str(title).unwrap();
+    // let hwnd = unsafe { FindWindowW(PCWSTR(null()), PCWSTR(title.as_ptr())) };
 
-    if hwnd.0 == 0 {
-        let last_error = unsafe { GetLastError() };
-        return Err(Error::new(
-            HRESULT(last_error.0 as _),
-            format!("FindWindowW returned NULL: {}", last_error.0).into(),
-        ));
-    }
-
-    let mut pid: u32 = 0;
-    unsafe { GetWindowThreadProcessId(hwnd, &mut pid as *mut _ as _) };
-
+    // if hwnd.0 == 0 {
+    //     let last_error = unsafe { GetLastError() };
+    //     return Err(Error::new(
+    //         HRESULT(last_error.0 as _),
+    //         format!("FindWindowW returned NULL: {}", last_error.0).into(),
+    //     ));
+    // }
+    // let mut pid: u32 = 0;
+    // unsafe { GetWindowThreadProcessId(hwnd, Some(pid as *mut u32 as _)) };
+    let hwnd = get_hwnd(title);
+    let pid = get_pid(hwnd);
     println!("{:?}", pid);
-
     inject_by_pid(pid, dll_path)
 }
 
@@ -61,7 +60,7 @@ pub fn inject_by_pid(pid: u32, dll_path: PathBuf) -> Result<()> {
     let dllp = unsafe {
         VirtualAllocEx(
             hproc,
-            null_mut(),
+            Some(null_mut()),
             (MAX_PATH as usize) * size_of::<u16>(),
             MEM_RESERVE | MEM_COMMIT,
             PAGE_READWRITE,
@@ -75,7 +74,7 @@ pub fn inject_by_pid(pid: u32, dll_path: PathBuf) -> Result<()> {
             dllp,
             dll_path.as_ptr() as *const std::ffi::c_void,
             (MAX_PATH as usize) * size_of::<u16>(),
-            (&mut bytes_written) as *mut _,
+            Some((&mut bytes_written) as *mut _),
         )
     };
 
@@ -84,12 +83,12 @@ pub fn inject_by_pid(pid: u32, dll_path: PathBuf) -> Result<()> {
     let thread = unsafe {
         CreateRemoteThread(
             hproc,
-            null(),
+            Some(null()),
             0,
             Some(std::mem::transmute(proc_addr)),
-            dllp,
+            Some(dllp),
             0,
-            null_mut(),
+            Some(null_mut()),
         )
     }?;
 
