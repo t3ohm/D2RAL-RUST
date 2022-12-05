@@ -10,7 +10,6 @@ strip = true
 lto = "thin"
 
 [dependencies]
-sys = "*"
 chrono = "*"
 log = "*"
 tui = "0.19"
