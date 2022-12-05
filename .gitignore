@@ -12,4 +12,5 @@ Cargo.lock
 **/*.rs.bk
 
 /rm/
+/handle/
 /bindings/target/

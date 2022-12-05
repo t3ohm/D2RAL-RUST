@@ -1,4 +1,10 @@
-use crate::*;
+use std::{path::Path, thread::{self, sleep}, process::ExitStatus, ffi::CString, time::Duration};
+
+use regex::Regex;
+use windows::{Win32::{UI::WindowsAndMessaging::{GetWindowThreadProcessId, FindWindowA, SetWindowTextA}, Foundation::HWND}, core::PCSTR};
+
+use crate::{inject::inject, exit, TITLE_NAME, handle::handle_prep};
+
 pub fn inject_helper(title:&str, dll_path:&str){
     if !verify_inject(title, dll_path) {
         println!("womp");
@@ -28,7 +34,6 @@ pub fn check_path(path:&str)->bool{
     if Path::new(path).exists(){
         true
     } else {
-        println!("path({})",path);
         false
     }
 }
@@ -37,7 +42,7 @@ pub fn kill_handle(){
     let mut handle_pid = None;
     let mut handle_event = None;
     let output = {
-        std::process::Command::new("handle64")
+        std::process::Command::new(handle_prep())
             .args(&["-nobanner","-a","-p","D2R.exe","Instances"])
             .output()
             .expect("failed to execute process")
@@ -50,10 +55,10 @@ pub fn kill_handle(){
     });
     if handle_pid != None {
         thread::spawn(move || -> Result<ExitStatus, std::io::Error> {
-            runas::Command::new("handle64").args(&["-nobanner","-p",&handle_pid.unwrap(),"-c",&handle_event.unwrap(),"-y"]).status()
+            runas::Command::new(handle_prep()).args(&["-nobanner","-p",&handle_pid.unwrap(),"-c",&handle_event.unwrap(),"-y"]).status()
         });
     }
-    sleep(time::Duration::new(0,500000000));
+    sleep(Duration::new(0,500000000));
 }
 pub fn get_pid(hwnd:HWND)->u32{
     unsafe {

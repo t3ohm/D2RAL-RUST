@@ -2,9 +2,12 @@ use crate::*;
 use crate::wincredman::{Credential,read_cred_generic,delete_credential};
 use std::fmt;
 use std::str;
+use colored::Colorize;
 use serde::__private::from_utf8_lossy;
 use wildmatch::WildMatch;
 use regex::Regex;
+const D2R_LOC: &'static str = "C:\\Program Files (x86)\\Diablo II Resurrected\\D2R.exe";
+
 #[derive(Debug, Clone)]
 pub struct Profile {
     pub name: String,
@@ -139,13 +142,14 @@ impl Profiles {
     }
 }
 
-pub fn targetalias_to_args(targetalias:String)->(String,String,String,String,String){
+pub fn targetalias_to_args(targetalias:String)->(String,String,String,String,String,String){
     let mut c_cmd:&str = Default::default();
     let mut mode:String = Default::default();
     let mut mode2:String = Default::default();
     let mut mode3:String = Default::default();
     let mut sound: String = Default::default();
     let mut window:String = Default::default();
+    let mut d2r_dir:String = Default::default();
     targetalias.split(",").for_each(|each| {
         c_cmd = Default::default();
         for cmd in each.split(":"){
@@ -156,6 +160,7 @@ pub fn targetalias_to_args(targetalias:String)->(String,String,String,String,Str
                     "mode3" => c_cmd="mode3",
                     "sound" => c_cmd="sound",
                     "window" => c_cmd="window",
+                    "d2r_dir" => c_cmd="d2r_dir",
                     value @ _=>{
                         if c_cmd != "".to_string().as_str(){
                             match c_cmd {
@@ -164,6 +169,7 @@ pub fn targetalias_to_args(targetalias:String)->(String,String,String,String,Str
                                 "mode3" => mode3 = value.to_string(),
                                 "sound" => sound = "-ns".to_string(),
                                 "window" => window = "-w".to_string(),
+                                "d2r_dir" => d2r_dir = value.to_string(),
                                 _y @ _ => c_cmd = Default::default(),
                                 
                             }
@@ -173,19 +179,20 @@ pub fn targetalias_to_args(targetalias:String)->(String,String,String,String,Str
             }
         }
     });
-    (mode,mode2,mode3,sound,window)
+    (mode,mode2,mode3,sound,window,d2r_dir)
 }
-pub fn args_to_targetalias(mode:String,sound:String,window:String)->String{
+pub fn args_to_targetalias(mode:String,sound:String,window:String,d2r_dir:String)->String{
     let mode2 = if mode.is_empty() {format!("")} else {format!("mode:{},",get_mode(&mode))};
     let mod_mode = if mode.is_empty() {format!("")} else {format!("mode2:{},",get_mod_mode(&mode))};
     let ext_mode = if mode.is_empty() {format!("")} else {format!("mode3:{},",get_ext_mode(&mode))};
     let sound = if sound == "1" {format!("")} else if sound == "2" {format!("sound:-ns,")} else {format!("")};
     let window = if window == "1" {format!("")} else if window == "2" {format!("window:-w,")} else {format!("")};
-    format!("{}{}{}{}{}",mode2,mod_mode,ext_mode,sound,window)
+    let d2r_dir = format!("d2r_dir:{},",d2r_dir);
+    format!("{}{}{}{}{}{}",mode2,mod_mode,ext_mode,sound,window,d2r_dir)
 }
 #[allow(unused_assignments)]
 pub fn merge_args_to_profile(cli:Cli,profile:Option<Profile>)->Option<Profile>{
-    let (mut mode,mod_mode,_ext_mode,mut sound,mut window) = 
+    let (mut mode,mod_mode,_ext_mode,mut sound,mut window,mut d2r_dir) = 
         targetalias_to_args(profile.clone().unwrap().credentials.targetalias);
     if cli.mode.to_lowercase() != "none" {
         mode = cli.mode;
@@ -210,15 +217,20 @@ pub fn merge_args_to_profile(cli:Cli,profile:Option<Profile>)->Option<Profile>{
             x @ _=> x.to_string() ,
         }
     }
+    if cli.d2r_dir != "".to_string()  {
+        d2r_dir = cli.d2r_dir.to_string();
+    } else {
+        d2r_dir = d2r_dir;
+    }
     let mut profile2 = profile.clone().unwrap();
-    profile2.credentials.targetalias = args_to_targetalias(mode,sound,window);
+    profile2.credentials.targetalias = args_to_targetalias(mode,sound,window,d2r_dir);
     let profile2 = Some(profile2);
     profile2
 }
 
 pub fn profile_copy_edit(cli:Cli,new_name:&str)->Cli{
     let profile = profile_select(Some(cli.clone().name.to_string())).unwrap_or_default();
-    let (_mode,mode2,_mode3,sound,window) = targetalias_to_args(profile.credentials.targetalias.clone());
+    let (_mode,mode2,_mode3,sound,window,d2r_dir) = targetalias_to_args(profile.credentials.targetalias.clone());
     let mut cli = cli;
     if profile != Profile::default(){
         cli.name = new_name.to_string();
@@ -258,6 +270,11 @@ pub fn profile_copy_edit(cli:Cli,new_name:&str)->Cli{
                 _=> 1,
             }
         }
+        if cli.d2r_dir != "".to_string() {
+            cli.d2r_dir = match d2r_dir.as_str() {
+                x @_=> x.to_string(),
+            }
+        }
     }
     cli
 }
@@ -278,7 +295,7 @@ pub fn profile_copy_helper(cli:Cli,new_name:&str){
 pub fn spawn(cli:Cli,mut profile:Option<Profile>){
     if profile == None {profile = Some(Profile::default())}
     let profile_spawn_cred = profile.clone().unwrap().credentials;
-    let (mode,mode2,mode3,sound,window) = 
+    let (mode,mode2,mode3,sound,window,d2r_dir) = 
         targetalias_to_args(profile_spawn_cred.targetalias.clone());
     if !profile_spawn_cred.username.is_empty() {println!("{}",profile_spawn_cred.username)}
     let mut switch_user:&str = Default::default();
@@ -297,14 +314,14 @@ pub fn spawn(cli:Cli,mut profile:Option<Profile>){
     } else {
         
     }
-    if cli.confirm.to_lowercase() != "no" {
-        let check = format!(
-            "mode:({}) mode2:({}) mode3:({}) sound:({}) window:({}) switch_user:({} {}) switch_pass:({} {}) switch_region:({} {})",
-            mode,mode2,mode3,sound,window, switch_user, switch_user_value, switch_pass, hide_text(switch_pass_value.clone()), switch_region, switch_region_value
-        );
-        ask(&format!("{}\nSpawn?",check));
-    }
-    thread::spawn(move || { let exe_path = "C:\\Program Files (x86)\\Diablo II Resurrected\\D2R.exe";
+    // if cli.confirm.to_lowercase() != "no" {
+    //     let check = format!(
+    //         "mode:({}) mode2:({}) mode3:({}) sound:({}) window:({}) switch_user:({} {}) switch_pass:({} {}) switch_region:({} {})",
+    //         mode,mode2,mode3,sound,window, switch_user, switch_user_value, switch_pass, hide_text(switch_pass_value.clone()), switch_region, switch_region_value
+    //     );
+    //     ask(&format!("{}\nSpawn?",check));
+    // }
+    thread::spawn(move || { let exe_path = d2r_dir;
         Command::new(exe_path)
             .args(&[
                 mode.as_str(),mode2.as_str(),mode3.as_str(),
@@ -321,7 +338,7 @@ pub fn spawn(cli:Cli,mut profile:Option<Profile>){
     if check_name(&profile.clone().unwrap()){
         setwindow_orig(new_title.clone());
     }
-    if check_path(&cli.dll){
+    if !cli.dll.is_empty() && check_path(&cli.dll){
         inject_helper(&new_title, &cli.dll)
     }
 
@@ -336,7 +353,7 @@ pub fn start(cli:Cli){
 }
 pub fn list_profile(profile:&Profile){
     if profile.name != Profile::default().name {
-        let  (mut mode2, mut mod_mode, mut ext_mode, mut sound, mut window)= targetalias_to_args(profile.credentials.targetalias.clone());
+        let  (mut mode2, mut mod_mode, mut ext_mode, mut sound, mut window,mut d2r_dir)= targetalias_to_args(profile.credentials.targetalias.clone());
 
         if !mode2.is_empty(){
             mode2 = format!("{} ",mode2)
@@ -353,10 +370,13 @@ pub fn list_profile(profile:&Profile){
         if !window.is_empty(){
             window = format!("{}",window)
         }
+        if !d2r_dir.is_empty(){
+            d2r_dir = format!("{}",d2r_dir)
+        }
         let launch_commands = format!("{}{}{}{}{}",mode2.green(),mod_mode.green(),ext_mode.green(),sound.red(),window.yellow());
         let profilename = profile.name.clone().yellow();
         let region = profile.credentials.comment.clone().red();
-        println!("Profile({}) region({}) launch_commands({}) ",profilename.to_string(),region.to_string(),launch_commands);
+        println!("Profile({}) region({}) launch_commands({}) d2r-dir({})",profilename.to_string(),region.to_string(),launch_commands,d2r_dir);
     }
 }
 pub fn profiles_list(){
@@ -395,7 +415,8 @@ pub fn profile_add_helper(cli:Cli){
         targetalias: args_to_targetalias(
             cli.mode.to_string(),
             cli.sound.to_string(),
-            cli.window.to_string()
+            cli.window.to_string(),
+            cli.d2r_dir.to_string()
         )
     };
     if cli.confirm != "no"{

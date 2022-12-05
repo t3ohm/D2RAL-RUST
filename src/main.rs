@@ -4,8 +4,10 @@ mod interact;
 mod help;
 mod winlibs;
 mod inject;
+mod handle;
+use handle::*;
 // use colored::Colorize;
-use crossterm::style::Stylize;
+// use crossterm::style::Stylize;
 use regex::Regex;
 use wincredman::*;
 use profile::*;
@@ -15,7 +17,7 @@ use help::*;
 use winlibs::*;
 use windows::{Win32::{UI::WindowsAndMessaging::{SetWindowTextA, FindWindowA, GetWindowThreadProcessId}, Foundation::HWND}, core::PCSTR};
 use core::time;
-use std::{thread,ffi::CString, thread::sleep,process::{Command, ExitStatus}, time::Duration, env};
+use std::{thread,ffi::CString, thread::sleep,process::{Command, ExitStatus}, time::Duration, env, path::PathBuf};
 use clap::{Parser, Subcommand};
 use std::fmt;
 use std::path::Path;
@@ -66,22 +68,25 @@ pub struct Cli {
     ///[required for D2RAL Add,Delete,Set-Title]
     #[arg(short = 'n', long = "name-profile", default_value_t = EMPTY_STRING.to_string())]
     name: String,
-    ///[required for command: Add](Optional for D2RAL: Edit, Copy)
+    ///[required for command: Add](Optional for commands: Edit, Copy)
     #[arg(short, long = "username-profile", default_value_t = EMPTY_STRING.to_string())]
     username: String,
-    ///[required for command Add](Optional for D2RAL: Edit, Copy)
+    ///[required for command Add](Optional for commands: Edit, Copy)
     #[arg(short, long = "password-profile", default_value_t = EMPTY_STRING.to_string())]
     password: String,
-    //(Optional for D2RAL: Edit, Copy, Start, Volley)
+    //(Optional for commands: Edit, Copy, Start, Volley)
     #[arg(short, long = "region-profile", default_value_t = EMPTY_STRING.to_string())]
     region: String,
     ///[ "none"=Profile , "normal", "direct", "txtdirect" , "{mode}"=-mod {mode} -txt ] (Add, Edit, Copy, Start, Volley) 
     #[arg(short, long = "mode-launch", default_value_t = MODE_NONE.to_string())]
     mode: String,
-    /// ["0"=Profile "1"=Sound, "2"=No Sound] (Add, Edit, Copy, Start, Volley)
+    ///[required for command: Add] (Optional for commands: Add, Edit, Copy, Start, Volley) 
+    #[arg(long = "d2r-dir", default_value_t = EMPTY_STRING.to_string())]
+    d2r_dir: String,
+    /// ["0"=Profile "1"=Sound, "2"=No Sound] (Optional for commands: Add, Edit, Copy, Start, Volley)
     #[arg(short, long = "sound-launch", default_value_t = 0)]
     sound: u8,
-    ///(Optional for D2RAL: Add, Edit, Copy, Start, Volley) [fullscreen:1 , windowed:2] 
+    ///(Optional for commands: Add, Edit, Copy, Start, Volley) [fullscreen:1 , windowed:2] 
     #[arg(short, long = "window-launch", default_value_t = 0)]
     window: u8,
     // /// Title
@@ -89,7 +94,7 @@ pub struct Cli {
     // title: String,
     #[arg(hide = true, short, long, default_value_t = CONFIRM_NO.to_string())]
     confirm: String,
-    /// inject (Optional for D2RAL: Start, Volley) [path to dll]
+    /// inject (Optional for commands: Start, Volley) [path to dll]
     #[arg(short = 'i', long = "inject", default_value_t = EMPTY_STRING.to_string())]
     dll: String,
 
@@ -108,7 +113,7 @@ pub enum D2RAL {
     List,
     /// D2RAL.exe Display {profile_name} => Display Stored Profile Details
     Display { profile: String},
-    /// D2RAL.exe -n {profile_name} -u {profile_username} -p {profile_password} -r {region} add => Add a profile
+    /// D2RAL.exe -n {profile_name} -u {profile_username} -p {profile_password} -r {region} --d2r-dir {path/to/D2R.exe} add => Add a profile
     Add,
     /// D2RAL.exe -n {profile_name} delete => Delete a profile
     Delete,
@@ -129,6 +134,8 @@ pub enum D2RAL {
     Example,
     /// "shell" mode
     Interactive,
+    #[command(hide(true))]
+    Test, 
     #[command(hide(true))]
     SecretMenuSuperCaliFragiousExpialidocious, 
 }
@@ -223,6 +230,11 @@ pub fn command_match(cli:Cli){
             println!("yeet")
         },
         D2RAL::Interactive => {},
+        D2RAL::Test => {
+            // get_arch();
+            // // let file = handle_dl();
+            handle_prep();
+        },
     }
 }
 
@@ -242,12 +254,23 @@ pub fn display_helper(profile:&String,cli:Cli){
     }
 }
 pub fn add_check(cli:Option<Cli>)->Option<Cli>{
-    name_check(username_check(password_check(region_check(cli))))
+    d2r_dir_check(region_check(password_check(username_check(name_check(cli)))))
 }
 pub fn name_check(cli:Option<Cli>)->Option<Cli>{
     let cli = cli.unwrap();
     if cli.name == "".to_string() || cli.name == "offline".to_string() {
         println!("--name is empty!");
+        exit()
+    }
+    Some(cli)
+}
+pub fn d2r_dir_check(cli:Option<Cli>)->Option<Cli>{
+    let cli = cli.unwrap();
+    if cli.d2r_dir == "".to_string() {
+        println!("--d2r-dir is empty!");
+        exit()
+    } else if !PathBuf::from(cli.d2r_dir.clone()).exists(){
+        println!("check your D2R path --d2r-dir {}",cli.d2r_dir.clone());
         exit()
     }
     Some(cli)
