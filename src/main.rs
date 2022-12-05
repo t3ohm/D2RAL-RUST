@@ -90,7 +90,7 @@ pub struct Cli {
     #[arg(hide = true, short, long, default_value_t = CONFIRM_NO.to_string())]
     confirm: String,
     /// inject (Optional for D2RAL: Start, Volley) [path to dll]
-    #[arg(hide = true,short = 'i', long = "inject", default_value_t = EMPTY_STRING.to_string())]
+    #[arg(short = 'i', long = "inject", default_value_t = EMPTY_STRING.to_string())]
     dll: String,
 
     #[command(subcommand)]
@@ -108,7 +108,7 @@ pub enum D2RAL {
     List,
     /// D2RAL.exe Display {profile_name} => Display Stored Profile Details
     Display { profile: String},
-    /// D2RAL.exe -n {profile_name} -u {profile_username} -p {profile_password} add => Add a profile
+    /// D2RAL.exe -n {profile_name} -u {profile_username} -p {profile_password} -r {region} add => Add a profile
     Add,
     /// D2RAL.exe -n {profile_name} delete => Delete a profile
     Delete,
@@ -123,7 +123,7 @@ pub enum D2RAL {
     /// D2RAL.exe custom-title {old} {new}
     CustomTitle { old: String, new: String},
     /// D2RAL.exe -i {Dll Path} {window_title} => Inject a compatible Dll into window
-    // #[command(hide(true))]
+    #[command(hide(true))]
     Inject {dll_path: String, title: String, },
     /// colored examples, 
     Example,
