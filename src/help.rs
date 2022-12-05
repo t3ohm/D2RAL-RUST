@@ -27,9 +27,9 @@ pub fn ci(str_:&str, color:Colors)-> colored::ColoredString {
     }
 }
 
-pub fn help_more(){
+pub fn examples(){
     // let info = "
-    let default_help = "
+    let _default_help = "
     Diablo II: Resurrected: Awesome Launcher
 
     Usage: d2ral.exe [OPTIONS] <COMMAND>
@@ -41,7 +41,7 @@ pub fn help_more(){
       display       D2RAL.exe Display {profile_name} => Display Stored Profile Details
       add           D2RAL.exe -n {profile_name} -u {profile_username} -p {profile_password} add => Add a profile
       delete        D2RAL.exe -n {profile_name} delete => Delete a profile
-      update        D2RAL.exe -n {profile_name} update => update a profile with new options
+      edit        D2RAL.exe -n {profile_name} update => update a profile with new options
       copy          D2RAL.exe -n {profile_name} copy {new profile name}=> copy a profile with new options
       close-handle  D2RAL.exe handle => Kill Mulisession mutex handle
       set-title     D2RAL.exe set-title {new title} => Set a default title window to a new title
@@ -71,9 +71,9 @@ pub fn help_more(){
     let window_flag = ci("-w", Colors::F);
     let mode_flag = ci("-m", Colors::F);
     let inject_flag = ci("-i", Colors::F);
-    let example_name = ci("test", Colors::P);
-    let example_name2 = ci("test2", Colors::P);
-    let example_name3 = ci("test3", Colors::P);
+    let example_name = ci("profile1", Colors::P);
+    let example_name2 = ci("profile2", Colors::P);
+    let example_name3 = ci("profile3", Colors::P);
     let example_user = ci("user@gmail.com", Colors::P);
     let example_user2 = ci("user2@gmail.com", Colors::P);
     let example_pass = ci("12345", Colors::P);
@@ -87,12 +87,12 @@ pub fn help_more(){
     let example_directtxt = ci("txtdirect", Colors::P);
     let add_cmd = ci("add", Colors::C);
     let start_cmd = ci("start", Colors::C);
-    let update_cmd = ci("update", Colors::C);
+    let edit_cmd = ci("edit", Colors::C);
     let copy_cmd = ci("copy", Colors::C);
     let _inject_cmd = ci("inject", Colors::C);
     let volley_cmd = ci("volley", Colors::C);
     let delete_cmd = ci("delete", Colors::C);
-    let example_inject = ci("path\\to\\dll start", Colors::P);
+    let example_inject = ci("path\\to\\dll", Colors::P);
     let example_mode_normal = ci("normal", Colors::P);
     let description = format!("Use the {} to set the {} of each {}",ci("flag options", Colors::F),ci("parameters",Colors::P),ci("command",Colors::C));
     let examples = "Examples>>>";
@@ -108,7 +108,7 @@ pub fn help_more(){
 
     let edit_desc = "Edit the profile with region to eu, sound on, window fullscreen, and '-direct -txt'".green();
     let edit_example = 
-    help_helper(format!("{name_flag} {example_name} {user_flag} {example_user} {pass_flag} {example_pass} {region_flag} {example_region_eu} {sound_flag} {example_on} {window_flag} {example_on} {mode_flag} {example_directtxt} {update_cmd}"));
+    help_helper(format!("{name_flag} {example_name} {user_flag} {example_user} {pass_flag} {example_pass} {region_flag} {example_region_eu} {sound_flag} {example_on} {window_flag} {example_on} {mode_flag} {example_directtxt} {edit_cmd}"));
 
     let copy_edit_desc = "Copy and edit it changine launch mode and setting to windowed".green();
     let copy_edit_example = help_helper(format!("{name_flag} {example_name} {window_flag} {example_on} {copy_cmd} {example_name2}"));
@@ -117,7 +117,7 @@ pub fn help_more(){
     let copy_edit_example2 = help_helper(format!("{name_flag} {example_name} {user_flag} {example_user2} {pass_flag} {example_pass2} {mode_flag} {example_mode_normal} {copy_cmd} {example_name3}"));
    
     let volly_inject_desc = "Start all profiles with injection".green();
-    let volly_inject_example = help_helper(format!("{name_flag} {example_name} {inject_flag} {example_inject} {volley_cmd}"));
+    let volly_inject_example = help_helper(format!("{inject_flag} {example_inject} {volley_cmd}"));
     
     let delete_desc = "Delete them".green();
     let delete_example1 = help_helper(format!("{name_flag} {example_name} {delete_cmd}"));
@@ -147,5 +147,6 @@ pub fn help_more(){
     {delete_example3}
     "
     );
-    println!("{default_help}\n\n{help_info}");
+    // println!("{default_help}");
+    println!("{help_info}");
 }

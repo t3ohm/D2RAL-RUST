@@ -321,8 +321,8 @@ pub fn spawn(cli:Cli,mut profile:Option<Profile>){
     if check_name(&profile.clone().unwrap()){
         setwindow_orig(new_title.clone());
     }
-    if check_path(&cli.inject){
-        inject_helper(&new_title, &cli.inject)
+    if check_path(&cli.dll){
+        inject_helper(&new_title, &cli.dll)
     }
 
 }
