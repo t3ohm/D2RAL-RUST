@@ -5,22 +5,19 @@ mod help;
 mod winlibs;
 mod inject;
 mod handle;
-use handle::*;
+mod localjson;
+use localjson::*;
 // use colored::Colorize;
 // use crossterm::style::Stylize;
-use regex::Regex;
 use wincredman::*;
 use profile::*;
 use interact::*;
-use inject::*;
 use help::*;
 use winlibs::*;
-use windows::{Win32::{UI::WindowsAndMessaging::{SetWindowTextA, FindWindowA, GetWindowThreadProcessId}, Foundation::HWND}, core::PCSTR};
 use core::time;
-use std::{thread,ffi::CString, thread::sleep,process::{Command, ExitStatus}, time::Duration, env, path::PathBuf};
+use std::{thread, thread::sleep,process::Command, time::Duration, path::PathBuf};
 use clap::{Parser, Subcommand};
 use std::fmt;
-use std::path::Path;
 #[derive(Debug,Clone)]
 pub enum Region {
     US,
@@ -165,52 +162,6 @@ pub fn interactive(){
     }
 }
 
-pub fn luggage() -> Vec<String> {
-    let mut args: Vec<String> = env::args().collect();
-    if args.len() >= 2 {
-        let mut key1:bool = false;
-        let mut key2:bool = false;
-        let mut key3:bool = false;
-        let mut key4:bool = false;
-        match args[1].as_str() {
-            "luggage" =>{
-                key1 = true
-            },
-            "12345" =>{
-                key2 = true
-            },
-            _=>{
-            }
-        }
-        if args.len() == 3 && (key1 || key2){
-            match args[2].as_str() {
-                "luggage" =>{
-                    key3 = true;
-                    args.pop();
-                    args.pop();
-                },
-                "12345" =>{
-                    key4 = true;
-                    args.pop();
-                    args.pop();
-                },
-                _=>{
-                    args.pop();
-                    args.pop();
-                    key1 = false;
-                    key2 = false;
-                }
-            }
-        }
-        if (key1 && key4) || (key2 && key3) {
-            println!("Secret menu!");
-            args.push("secret-menu-super-cali-fragious-expialidocious".to_string());
-        }
-    }
-    check_time();
-    args
-}
-
 pub fn command_match(cli:Cli){
     match &cli.command {
         D2RAL::List => profiles_list(),
@@ -231,9 +182,7 @@ pub fn command_match(cli:Cli){
         },
         D2RAL::Interactive => {},
         D2RAL::Test => {
-            // get_arch();
-            // // let file = handle_dl();
-            handle_prep();
+            json_fn(cli.clone());
         },
     }
 }
@@ -372,3 +321,4 @@ pub fn cli_prep()->Cli{
     }
     cli
 }
+

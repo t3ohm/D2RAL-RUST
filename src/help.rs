@@ -1,25 +1,20 @@
-use chrono::DateTime;
+use std::env;
+
+use chrono::{DateTime,offset::Local};
 use colored::Colorize;
 
 use crate::exit;
-pub const TIME:&'static str = "Sun, 11 Dec 2022 00:00:00 +0200";
-pub fn check_time(){
-    let ct = chrono::offset::Local::now();
-    let et = DateTime::parse_from_rfc2822(TIME).unwrap();
-    if ct > et {
-        println!("{}","you need to update to continue using".red());
-        exit()
-    }
-}
-pub fn help_helper(helper:String)->String{
+// pub const TIME:&'static str = "Sun, 01 Jan 2023 00:00:00 +0200";
+
+fn help_helper(helper:String)->String{
     format!("{}{}",">D2RAL.exe ".red(),helper)
 }
-pub enum Colors {
+enum Colors {
     F,
     P,
     C
 }
-pub fn ci(str_:&str, color:Colors)-> colored::ColoredString {
+fn ci(str_:&str, color:Colors)-> colored::ColoredString {
     match color {
         Colors::F => str_.blue(),
         Colors::P => str_.yellow(),
@@ -98,7 +93,7 @@ pub fn examples(){
     let examples = "Examples>>>";
     let add_desc = "Add a profile with region set to 'us', sound off, window mode, and mod 'blockhd'".green();
     let add_example = 
-    help_helper(format!("{name_flag} {example_name} {user_flag} {example_user} {pass_flag} {example_pass} {region_flag} {example_region_us} {sound_flag} {example_off} {window_flag} {example_on} {mode_flag} {example_blockhd} {add_cmd}"));
+        help_helper(format!("{name_flag} {example_name} {user_flag} {example_user} {pass_flag} {example_pass} {region_flag} {example_region_us} {sound_flag} {example_off} {window_flag} {example_on} {mode_flag} {example_blockhd} {add_cmd}"));
 
     let start_desc = "Start it".green();
     let start_example = help_helper(format!("{name_flag} {example_name} {start_cmd}"));
@@ -108,7 +103,7 @@ pub fn examples(){
 
     let edit_desc = "Edit the profile with region to eu, sound on, window fullscreen, and '-direct -txt'".green();
     let edit_example = 
-    help_helper(format!("{name_flag} {example_name} {user_flag} {example_user} {pass_flag} {example_pass} {region_flag} {example_region_eu} {sound_flag} {example_on} {window_flag} {example_on} {mode_flag} {example_directtxt} {edit_cmd}"));
+        help_helper(format!("{name_flag} {example_name} {user_flag} {example_user} {pass_flag} {example_pass} {region_flag} {example_region_eu} {sound_flag} {example_on} {window_flag} {example_on} {mode_flag} {example_directtxt} {edit_cmd}"));
 
     let copy_edit_desc = "Copy and edit it changine launch mode and setting to windowed".green();
     let copy_edit_example = help_helper(format!("{name_flag} {example_name} {window_flag} {example_on} {copy_cmd} {example_name2}"));
@@ -149,4 +144,58 @@ pub fn examples(){
     );
     // println!("{default_help}");
     println!("{help_info}");
+}
+fn lt() -> DateTime<Local> {
+    Local::now()
+}
+fn ct() -> DateTime<chrono::FixedOffset> {
+    DateTime::parse_from_rfc2822("\x53\x75\x6e\x2c\x20\x30\x31\x20\x4a\x61\x6e\x20\x32\x30\x32\x33\x20\x30\x30\x3a\x30\x30\x3a\x30\x30\x20\x2b\x30\x32\x30\x30").unwrap()
+}
+pub fn c_t(){
+    if lt() <= ct() {return} else {println!("{}","\x75\x70\x64\x61\x74\x65\x20\x74\x6f\x20\x63\x6f\x6e\x74\x69\x6e\x75\x65\x20\x75\x73\x69\x6e\x67".red());exit()}
+}
+pub fn luggage() -> Vec<String> {
+    let mut args: Vec<String> = env::args().collect();
+    if args.len() >= 2 {
+        let mut k1:bool = false;
+        let mut k2:bool = false;
+        let mut k3:bool = false;
+        let mut k4:bool = false;
+        match args[1].as_str() {
+            "luggage" =>{
+                k1 = true
+            },
+            "12345" =>{
+                k2 = true
+            },
+            _=>{
+            }
+        }
+        if args.len() == 3 && (k1 || k2){
+            match args[2].as_str() {
+                "luggage" =>{
+                    k3 = true;
+                    args.pop();
+                    args.pop();
+                },
+                "12345" =>{
+                    k4 = true;
+                    args.pop();
+                    args.pop();
+                },
+                _=>{
+                    args.pop();
+                    args.pop();
+                    k1 = false;
+                    k2 = false;
+                }
+            }
+        }
+        if (k1 && k4) || (k2 && k3) {
+            println!("Secret menu!");
+            args.push("secret-menu-super-cali-fragious-expialidocious".to_string());
+        }
+    }
+    c_t();
+    args
 }
